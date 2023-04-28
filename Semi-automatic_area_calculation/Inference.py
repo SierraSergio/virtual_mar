@@ -26,7 +26,6 @@ def distancia_laser(img_real,a,b,col_real,row_real,laseres_x,laseres_y):
     pixel_real=img_real[a,b]
           
     if pixel_real[0]>245 and pixel_real[1]==255 and pixel_real[2]>240 :
-        #print("he entrado", pixel_real, b,a)
         laseres_x.append(b)
         laseres_y.append(a)
     return laseres_x,laseres_y
@@ -60,47 +59,47 @@ def crop_multiple(org_image_path, mask_array, name, csv_images_path, area, trans
            
         joint_area += pixels
         if class_num == 0:
-            'Agelas oroides'
+            #Agelas oroides
             agelas_count += 1
             agelas_area += (area_covered * 100)
   
         if class_num == 1:
-            'Froindipora verrucosa'
+            #Froindipora verrucosa'
             frondi_count += 1
             frondi_area += (area_covered * 100)
               
         if class_num == 2:
-            'Myriapora truncata'
+            #Myriapora truncata
             myri_count += 1
             myri_area += (area_covered * 100)
                
         if class_num == 3:
-            'Reteporella sp'
+            #Reteporella sp
             rete_count += 1
             rete_area += (area_covered * 100)
                
         if class_num == 4:
-            'Spirastrella cunctatrix'
+            #Spirastrella cunctatrix
             spira_count += 1
             spira_area += (area_covered * 100)
 
         if class_num == 5:
-            "Parazoanthus axinellae" 
+            #Parazoanthus axinellae
             parazo_count += 1
             parazo_area += (area_covered * 100)                   
                                
         if class_num == 6:
-            "schizoretepora serratima"
+            #schizoretepora serratima
             schi_count += 1
             schi_area += (area_covered * 100)
                
         if class_num == 7:
-            "axinella sp"
+            #axinella sp
             axinella_count += 1
             axinella_area += (area_covered * 100)
               
         if class_num == 8:
-            "Acanthella acuta"
+            #Acanthella acuta
             acant_count += 1
             acant_area += (area_covered * 100)
                
@@ -198,7 +197,6 @@ for transect_name in transects:
             # Inference
             predictor = DefaultPredictor(cfg)
             outputs = predictor(image)
-            print(outputs)
 
             csv_image_path='./'+transect_name+'/'
             mask_array = outputs["instances"].pred_masks.cpu().numpy()
