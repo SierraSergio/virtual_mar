@@ -64,12 +64,7 @@ def cropper_varios(org_image_path, mask_array,nombre,csv_imagenes_path,area,tran
                'Agelas oroides'
                cont_agelas=cont_agelas+1
                area_agelas=area_agelas+(area_abarcada*100)
-               
-            if clase==1:
-               'Didenmnum sp.'
-               cont_dide=cont_dide+1
-               area_dide=area_dide+(area_abarcada*100)
-
+             
                
             if clase==2:
                'Froindipora verrucosa'
@@ -111,15 +106,9 @@ def cropper_varios(org_image_path, mask_array,nombre,csv_imagenes_path,area,tran
                cont_acant=cont_acant+1
                area_acant=area_acant+(area_abarcada*100)
                
-            if clase==11:
-               "SP040B_Salmancina incrustans"
-               cont_salma=cont_salma+1
-               area_salma=area_salma+(area_abarcada*100)
+
                
-            if clase==12:
-               "SP019B_Demospongia sp."
-               cont_demos=cont_demos+1
-               area_demos=area_demos+(area_abarcada*100)
+
                
         
         if cont_agelas>0:
@@ -159,8 +148,8 @@ dataset_dicts = DatasetCatalog.get("paredes")
 cfg = get_cfg()
 
 # load weights
-cfg.merge_from_file("C:/Users/ser/detectron2/configs/COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml")
-cfg.MODEL.WEIGHTS = "C:/Users/ser/Desktop/virtual_mar_entrega/deteccion_13especies/2700_160921/model_final.pth"
+cfg.merge_from_file("./detectron2/configs/COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml")
+cfg.MODEL.WEIGHTS = "./model_final.pth"
 
 cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # set the testing threshold for this model
 cfg.DATALOADER.NUM_WORKERS = 2
@@ -174,84 +163,233 @@ cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST=0.3
 # Create predictor (model for inference)
 predictor = DefaultPredictor(cfg)
 
-transectos=["IC14_CATEDRAL_0421_T1_VUELTA"]
-for nombre_transecto in transectos:
+from detectron2.engine import DefaultTrainer, DefaultPredictor
+from detectron2.config import get_cfg
+from detectron2.data import DatasetCatalog, MetadataCatalog
+from detectron2.data.datasets import register_coco_instances
+from detectron2.utils.visualizer import ColorMode, Visualizer
+from PIL import Image
+import numpy as np
+import cv2
+import csv
+import math
+import os
+
+mouse_click_counter = 0
+point_matrix = np.zeros((100, 2))
+
+def mouse_points_handler(event, x, y, flags, params):
+    global mouse_click_counter, point_matrix
+    # Left button click
+    if event == cv2.EVENT_LBUTTONDOWN:
+        point_matrix[mouse_click_counter] = x, y
+        mouse_click_counter += 1
+
+def get_laser_coordinates(img_real, a, b, col_real, row_real, laseres_x, laseres_y):
+    pixel_real = img_real[a, b]
+    if pixel_real[0] > 245 and pixel_real[1] == 255 and pixel_real[2] > 240:
+        laseres_x.append(b)
+        laseres_y.append(a)
+    return laseres_x, laseres_y
+    
+def crop_multiple(org_image_path, mask_array, name, csv_images_path, area, transect, employee_writer):
+    print(mask_array.shape[0])
+    img = cv2.imread(org_image_path)
+    height, width = img.shape[:2]
+    total_pixels = height * width
+
+    joint_area = 0
+    demos_count = salma_count = acant_count = axinella_count = schi_count = parazo_count = spira_count = rete_count = myri_count = frondi_count = dide_count = agelas_count = 0
+    demos_area = salma_area = acant_area = axinella_area = schi_area = parazo_area = spira_area = rete_area = myri_area = frondi_area = dide_area = agelas_area = 0
+
+    for i in range(mask_array.shape[0]):
+        mask = np.moveaxis(mask_array, 0, -1)
+        mask = mask[:,:,i:i+1]
+        
+        instances = outputs.get('instances')
+        classes_tensor = instances.pred_classes
+        classes_tensor = classes_tensor.cpu()
+        classes = classes_tensor.numpy()
+        category = classes[i]
+
+        output = np.where(mask == False, 0, (np.where(mask == True, 255, img)))
+        image = Image.fromarray(output)
+
+        gray = cv2.cvtColor(output, cv2.COLOR_BGR2GRAY)
+        non_zero_pixels = cv2.countNonZero(gray)
+        area_covered = non_zero_pixels / total_pixels
+        joint_area += non_zero_pixels
+        
+        if category == 0:
+            # Agelas oroides
+            agelas_count += 1
+            agelas_area += area_covered * 100
+
+        if category == 1:
+            # Froindipora verrucosa
+            frondi_count += 1
+            frondi_area += area_covered * 100
+
+        if category == 2:
+            # Myriapora truncata
+            myri_count += 1
+            myri_area += area_covered * 100
+
+        if category == 3:
+            # Reteporella sp
+            rete_count += 1
+            rete_area += area_covered * 100
+
+        if category == 4:
+            # Spirastrella cunctatrix
+            spira_count += 1
+            spira_area += area_covered * 100
+
+        if category == 5:
+            # Parazoanthus axinellae
+            parazo_count += 1
+            parazo_area += area_covered * 100
+
+        if category == 6:
+            # schizoretepora serratima
+            schi_count += 1
+            schi_area += area_covered * 100
+
+        if category == 7:
+            # axinella sp
+            axinella_count += 1
+            axinella_area += area_covered * 100
+
+        if category == 8:
+            # SP025C_Acanthella acuta
+            acant_count += 1
+            acant_area += area_covered * 100
+
+    if agelas_count > 0:
+        employee_writer.writerow([transect, name, 'Agelas oroides', area, agelas_count, agelas_area, round(area * agelas_area / 100, 2)])
+    if frondi_count > 0:
+        employee_writer.writerow([transect, name, 'Froindipora verrucosa', area, frondi_count, frondi_area, round(area * frondi_area / 100, 2)])
+    if myri_count > 0:
+        employee_writer.writerow([transect, name, 'Myriapora truncata', area, myri_count, myri_area, round(area * myri_area / 100, 2)])
+    if rete_count > 0:
+        employee_writer.writerow([transect, name, 'Reteporella sp', area, rete_count, rete_area, round(area * rete_area / 100, 2)])
+    if spira_count > 0:
+        employee_writer.writerow([transect, name, 'Spirastrella cunctatrix', area, spira_count, spira_area, round(area * spira_area / 100, 2)])
+    if parazo_count > 0:
+        employee_writer.writerow([transect, name, 'Parazoanthus axinellae', area, parazoi_count, parazo_area, round(area * parazo_area / 100, 2)])
+    if schi_count > 0:
+        employee_writer.writerow([transect, name, 'Schizoretepora serratima', area, schi_count, schi_area, round(area * schi_area / 100, 2)])
+    if axinella_count > 0:
+        employee_writer.writerow([transect, name, 'axinella sp', area, axinella_count, axinella_area, round(area * axinella_area / 100, 2)])
+    if acant_count > 0:
+        employee_writer.writerow([transect, name, 'Acanthella acuta', area, acant_count, acant_area, round(area * acant_area / 100, 2)])
+    
+    area_no_etiquetada = 100 - ((joint_area / total_pixels) * 100)
+    employee_writer.writerow([transecto,nombre,"No identify",area,"1",area_no_etiquetada,round(area*area_no_etiquetada/100,2)])
+
+def create_directory(directory):
     try:
-        os.mkdir('./'+nombre_transecto)
+        os.mkdir(directory)
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
-        
-    #image
-    im_path = "./"+nombre_transecto+"/"
-    with open('./'+nombre_transecto+"/"+nombre_transecto+'.csv', mode='w',newline='') as employee_file:
-        employee_writer = csv.writer(employee_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        employee_writer.writerow(['Transecto','Imagen','Especie','area(m2)','Unidades de la especie','Cobertura(%)','Cobertura(m2)'])
-        #employee_writer.writerow(['Transect', 'Photo', 'Agelas oroides','Didenmnum sp.','Froindipora verrucosa','Myriapora truncata','Reteporella sp','Spirastrella cunctatrix',"Parazoanthus axinellae","schizoretepora serratima","axinella sp", "SP025C_Acanthella acuta","SP040B_Salmancina incrustans","SP019B_Demospongia sp.",'Area','Dens_Agelas_oroides','Dens_Didemnum','Dens_Froindipora_verrucosa','Dens_Myriapora_truncata','Dens_Reteporella','Dens_Spirastrella cunctatrix','Dens_Parazoanthus axinellae','Dens_schizoretepora_serratima','Dens_axinella','Dens_SP025C_Acanthella acuta','Dens_SP040B_Salmancina_incrustans','Dens_SP019B_Demospongia'])
-        for imagen in glob.glob(im_path+"*.jpg"):
-            nombre=imagen.split("/"+nombre_transecto+"\\")
-            nombre=nombre[1]
-            print(nombre)
-            im=cv2.imread(imagen)
             
-            #inference
-            outputs = predictor(im)
+#register
+register_coco_instances("paredes",{},"C:/Users/ser/Desktop/virtual_mar_entrega/deteccion_13especies/train_160921_13especies.json", "C:/Users/ser/detectron2/10especies_cuevas/images/")
+paredes_metadata = MetadataCatalog.get("paredes")
+dataset_dicts = DatasetCatalog.get("paredes")
+
+cfg = get_cfg()
+
+# load weights
+cfg.merge_from_file("./mask_rcnn_R_101_FPN_3x.yaml")
+cfg.MODEL.WEIGHTS = "./model_final.pth"
+
+cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # set the testing threshold for this model
+cfg.DATALOADER.NUM_WORKERS = 2
+cfg.SOLVER.IMS_PER_BATCH = 2
+cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 128 
+
+cfg.SOLVER.BASE_LR=0.02
+cfg.MODEL.ROI_HEADS.NUM_CLASSES=13
+cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST=0.3
+
+# Create predictor (model for inference)
+predictor = DefaultPredictor(cfg)
+
+transects=["IC14_CATEDRAL_0421_T1_VUELTA"]
+
+for transect_name in transects:
+    # Create directory for transect
+    create_directory('./'+transect_name)
+
+    # Image
+    im_path = "./"+transect_name+"/"
+    with open('./'+transect_name+"/"+transect_name+'.csv', mode='w',newline='') as employee_file:
+        employee_writer = csv.writer(employee_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        employee_writer.writerow(['Transect','Image','Species','Area (m2)','Units of species','Coverage (%)','Coverage (m2)'])
+
+        for image_path in glob.glob(im_path+"*.jpg"):
+            image_name = image_path.split("/"+transect_name+"\\")[1]
+            image = cv2.imread(image_path)
+
+            # Inference
+            predictor = DefaultPredictor(cfg)
+            outputs = predictor(image)
             print(outputs)
-            csv_imagenes_path='./'+nombre_transecto+'/'
-            mask_array = outputs["instances"].pred_masks.cpu().numpy() 
-                        
+
+            csv_image_path='./'+transect_name+'/'
+            mask_array = outputs["instances"].pred_masks.cpu().numpy()
+
             # Create point matrix get coordinates of mouse click on image
             point_matrix = np.zeros((2,2))
-            
+
             # Showing original image
-            cv2.imshow("Original Image ", im)
-            
+            cv2.imshow("Original Image", image)
+
             # Mouse click event on original image
-            cv2.setMouseCallback("Original Image ", mousePoints)
+            cv2.setMouseCallback("Original Image", mousePoints)
             cv2.waitKey()
             counter=0
-            
+
             # Printing updated point matrix
-            punto1=point_matrix[0]
-            punto2=point_matrix[1]
+            point1=point_matrix[0]
+            point2=point_matrix[1]
 
-            punto1_x=punto1[0]
-            punto1_y=punto1[1]
+            point1_x=point1[0]
+            point1_y=point1[1]
 
-            punto2_x=punto2[0]
-            punto2_y=punto2[1]
+            point2_x=point2[0]
+            point2_y=point2[1]
 
-            x=punto1_x-punto2_x
-            y=punto1_y-punto2_y
-            print(x,y)
-            
-            distancia_px=math.sqrt(pow(x,2)+pow(y,2))
-            print(distancia_px)
-            
-            height, width = im.shape[0:2]
+            x=point1_x-point2_x
+            y=point1_y-point2_y
 
-            distancia_puntos_real=0.2#m
-                             
+            distance_px=math.sqrt(pow(x,2)+pow(y,2))
+
+            height, width = image.shape[0:2]
+
+            real_distance = 0.2 # m
+
             instances=outputs.get('instances')
             classes_tensor=instances.pred_classes
             classes_tensor=classes_tensor.cpu()
             classes=classes_tensor.numpy()
-                     
-            if distancia_px==0:
-                area=0
-                
+
+            if distancia_px == 0:
+                area = 0
             else:
-                area=(height*distancia_puntos_real/distancia_px)*(width*distancia_puntos_real/distancia_px)
-                area=round(area,2)
-            
-            cropper_varios(imagen, mask_array,nombre,csv_imagenes_path,area,nombre_transecto,employee_writer)
-            v = Visualizer(im[:, :, ::-1],
-                               metadata=paredes_metadata, 
-                               scale=1, 
-                               instance_mode=ColorMode.IMAGE_BW # remove the colors of unsegmented pixels
+                area = (height * real_distance / distance_px) * (width *real_distance / distance_px)
+                area = round(area, 2)
+
+            cropper_varios(image_path, mask_array, image_name, csv_image_path, area, transect_name, employee_writer)
+
+            v = Visualizer(image[:, :, ::-1],
+                           metadata=metadata, 
+                           scale=1, 
+                           instance_mode=ColorMode.IMAGE_BW # remove the colors of unsegmented pixels
                 )
-            
-            v,imagen,nuevo_negro = v.draw_instance_predictions(outputs["instances"].to("cpu"))
-               
-        
-            v.save("./"+nombre_transecto+"/"+nombre)
+
+            v, image, nuevo_negro = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+
+            v.save("./"+transect_name+"/"+image_name)
