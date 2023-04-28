@@ -3,6 +3,10 @@ Monitoring marine biodiversity is a challenge in some vulnerable and difficult-t
 
 
 <img src="https://user-images.githubusercontent.com/58831974/235145530-27011fd9-07cb-4f4b-9d6e-e6513b89ef74.jpg" alt="Descripción de la imagen" width="600">
+Image 1
 <img src=https://user-images.githubusercontent.com/58831974/235145567-e49c61f0-8c71-445d-a356-2350e0b36de7.jpg alt="Descripción de la imagen" width="600">
+Image 1 inference
 <img src=https://user-images.githubusercontent.com/58831974/235145536-964333a2-5c82-492f-9589-f856c456ed6e.jpg alt="Descripción de la imagen" width="600">
+Image 2
 <img src=https://user-images.githubusercontent.com/58831974/235145572-b647ba92-a889-483a-b362-87f6916dd026.jpg alt="Descripción de la imagen" width="600">
+Image 2 inference
