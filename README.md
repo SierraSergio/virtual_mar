@@ -10,3 +10,5 @@ Image 1 inference
 Image 2
 <img src=https://user-images.githubusercontent.com/58831974/235145572-b647ba92-a889-483a-b362-87f6916dd026.jpg alt="Descripción de la imagen" width="600">
 Image 2 inference
+
+"The code in this work is heavily based on the Detectron2 repository on GitHub (https://github.com/facebookresearch/detectron2)."
